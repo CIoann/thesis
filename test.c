@@ -37,8 +37,8 @@
 #define R_MOTOR_EXT_PORT  EXT_PORT__NONE_
 #define IR_CHANNEL        0
 
-#define SPEED_LINEAR      30  /* Motor speed for linear motion, in percents */
-#define SPEED_CIRCULAR    10  /* ... for circular motion */
+#define SPEED_LINEAR      75  /* Motor speed for linear motion, in percents */
+#define SPEED_CIRCULAR    50  /* ... for circular motion */
 
 int max_speed;  /* Motor maximal speed */
 
@@ -53,8 +53,7 @@ enum {
 };
 
 int mode;  /* Driving mode */
-int s_speed_linear;
-int s_speed_circular;
+
 
 enum {
 	MOVE_NONE,
@@ -85,19 +84,13 @@ static void _set_mode( int value )
 		mode = MODE_LEADER;
 
 }
-static void _set_speed( int value )
-{
-	//choose desired speed
-	s_speed_linear = value;
-	s_speed_circular = value;
-}
+
 static void _run_forever( int l_speed, int r_speed )
 {
 	set_tacho_speed_sp( motor[ L ], l_speed );
 	set_tacho_speed_sp( motor[ R ], r_speed );
 	multi_set_tacho_command_inx( motor, TACHO_RUN_FOREVER );
 }
-
 
 static void _run_to_rel_pos( int l_speed, int l_pos, int r_speed, int r_pos )
 {
@@ -178,7 +171,7 @@ CORO_CONTEXT( handle_touch );
 CORO_CONTEXT( handle_color );
 CORO_CONTEXT( handle_brick_control );
 
-//CORO_CONTEXT( supervisory_drive);
+CORO_CONTEXT( supervisory_drive);
 CORO_CONTEXT( drive );
 /* Coroutine of the TOUCH sensor handling */
 CORO_DEFINE( handle_touch )
@@ -192,9 +185,9 @@ CORO_DEFINE( handle_touch )
 		/* Waiting the button is pressed */
 		CORO_WAIT( get_sensor_value( 0, touch, &val ) && ( val ));
 		/* Stop the vehicle */
-		command = MOVE_NONE;
+		command = MOVE_BACKWARD;
 		/* Switch mode */
-		_set_mode(( mode == MODE_LEADER ) ? MODE_LEADER : MODE_LEADER );
+		_set_mode(( mode == MODE_LEADER ) ? MODE_AUTO : MODE_LEADER );
 		/* Waiting the button is released */
 		CORO_WAIT( get_sensor_value( 0, touch, &val ) && ( !val ));
 	}
@@ -208,14 +201,16 @@ CORO_DEFINE ( handle_color )
 	CORO_BEGIN();
 	if (sn_colour == DESC_LIMIT ) CORO_QUIT();
 
-		CORO_WAIT(get_sensor_value(0, sn_colour, &val ) || ( val < 0 ));
+	for ( ; ; ){
+		CORO_WAIT(get_sensor_value(0, sn_colour, &val ) || ( val > 0 ) || ( val <= COLOR_COUNT ));
 		printf( "\r(%s)", color[ val ]);
 		fflush( stdout );
-		if (val ==1) {
+		if (val == 1) {
 			command = MOVE_FORWARD;
 		}else{
 			command = TURN_LEFT;
-		}
+		}		
+	}
 	CORO_END();
 }
 
@@ -235,19 +230,44 @@ CORO_DEFINE( handle_brick_control )
 
 		if ( pressed & EV3_KEY_BACK ) {
 			command = MOVE_NONE;
-			_set_mode(( mode == MODE_FOLLOWER ) ? MODE_LEADER : MODE_LEADER );
+			_set_mode(( mode == MODE_FOLLOWER ) ? MODE_AUTO : MODE_FOLLOWER );
 
 
 		} else if ( pressed & EV3_KEY_UP ) {
 			/* Stop the vehicle */
 			command = MOVE_NONE;
 			/* Switch mode */
-			_set_mode(( mode == MODE_LEADER ) ? MODE_LEADER : MODE_LEADER );
+			_set_mode(( mode == MODE_LEADER ) ? MODE_AUTO : MODE_LEADER );
 		}
 		CORO_YIELD();
 	}
 	CORO_END();
 }
+/* Drive supervisory follow line pid CONTROL*/
+CORO_DEFINE( supervisory_drive )
+ {
+// int power = 50
+// int minRef = 40;
+// int maxRef = 100;
+// int target = 55;
+// float kp = float(0.65);
+// float kd = 1;
+// float ki = float(0.02);
+// int direction = -1;
+// float  lastError, error , integral = 0;
+
+//         refRead = col.value()
+//         error = target - (100 * ( refRead - minRef ) / ( maxRef - minRef ))
+//         derivative = error - lastError
+//         lastError = error
+//         integral = float(0.5) * integral + error
+//         course = (kp * error + kd * derivative +ki * integral) * direction
+//         for (motor, pow) in zip((left_motor, right_motor), steering2(course, power)):
+//             motor.duty_cycle_sp = pow
+//         sleep(0.01) # Aprox 100Hz
+}
+
+
 /* Coroutine of control the motors */
 CORO_DEFINE( drive )
 {
@@ -255,8 +275,8 @@ CORO_DEFINE( drive )
 	CORO_LOCAL int _wait_stopped;
 
 	CORO_BEGIN();
-	speed_linear = max_speed * s_speed_linear / 100;
-	speed_circular = max_speed * s_speed_circular / 100;
+	speed_linear = max_speed * SPEED_LINEAR / 100;
+	speed_circular = max_speed * SPEED_CIRCULAR / 100;
 
 	for ( ; ; ) {
 		/* Waiting new command */
@@ -271,11 +291,11 @@ CORO_DEFINE( drive )
 			break;
 
 		case MOVE_FORWARD:
-			_run_timed( -speed_linear, -speed_linear, 10);
+			_run_forever( -speed_linear, -speed_linear );
 			break;
 
 		case MOVE_BACKWARD:
-			_run_timed( speed_linear, speed_linear,20 );
+			_run_forever( speed_linear, speed_linear );
 			break;
 
 		case TURN_LEFT:
@@ -312,6 +332,7 @@ int main( void )
 {
 	printf( "Waiting the EV3 brick online...\n" );
 	if ( ev3_init() < 1 ) return ( 1 );
+
 	printf( "*** ( EV3 ) Hello! ***\n" );
 	ev3_sensor_init();
 	ev3_tacho_init();
@@ -319,24 +340,25 @@ int main( void )
 	app_alive = app_init();
 	while ( app_alive ) {
 
+		command=MOVE_FORWARD;
 		CORO_CALL( handle_touch );
-		//CORO_CALL( handle_color );
+		CORO_CALL( handle_color );
 		CORO_CALL( handle_brick_control );
+		/*if (mode == MODE_LEADER){
+			CORO_CALL( supervisory_drive );
 
-		printf( "LEGO_EV3_M_MOTOR is found, run for 5 sec...\n" );
-		command = MOVE_FORWARD;
-		CORO_CALL( drive);
-		sleep(10);
-		command = MOVE_BACKWARD;
+			//FOLLOW THE LINE
+		}else{
+			//FOLLOW THE VEHICLE IN FRONT
+		}*/
+				
 		CORO_CALL( drive );
 
-		}
 
 		Sleep( 10 );
-	
+	}
 	ev3_uninit();
 	printf( "*** ( EV3 ) Bye! ***\n" );
 
 	return ( 0 );
 }
-
