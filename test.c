@@ -87,9 +87,9 @@ static void _set_mode( int value )
 }
 static void _set_speed( int value )
 {
-//choose desired speed
-s_speed_linear = value;
-s_speed_circular = value;
+	//choose desired speed
+	s_speed_linear = value;
+	s_speed_circular = value;
 }
 static void _run_forever( int l_speed, int r_speed )
 {
@@ -97,6 +97,7 @@ static void _run_forever( int l_speed, int r_speed )
 	set_tacho_speed_sp( motor[ R ], r_speed );
 	multi_set_tacho_command_inx( motor, TACHO_RUN_FOREVER );
 }
+
 
 static void _run_to_rel_pos( int l_speed, int l_pos, int r_speed, int r_pos )
 {
@@ -211,11 +212,9 @@ CORO_DEFINE ( handle_color )
 		printf( "\r(%s)", color[ val ]);
 		fflush( stdout );
 		if (val ==1) {
-			command = MOVE_BACKWARD;
-//_set_speed(50);
+			command = MOVE_FORWARD;
 		}else{
 			command = TURN_LEFT;
-//_set_speed(30);
 		}
 	CORO_END();
 }
@@ -249,31 +248,6 @@ CORO_DEFINE( handle_brick_control )
 	}
 	CORO_END();
 }
-/* Drive supervisory follow line pid CONTROL*/
-//CORO_DEFINE( supervisory_drive )
-// {
-// int power = 50
-// int minRef = 40;
-// int maxRef = 100;
-// int target = 55;
-// float kp = float(0.65);
-// float kd = 1;
-// float ki = float(0.02);
-// int direction = -1;
-// float  lastError, error , integral = 0;
-
-//         refRead = col.value()
-//         error = target - (100 * ( refRead - minRef ) / ( maxRef - minRef ))
-//         derivative = error - lastError
-//         lastError = error
-//         integral = float(0.5) * integral + error
-//         course = (kp * error + kd * derivative +ki * integral) * direction
-//         for (motor, pow) in zip((left_motor, right_motor), steering2(course, power)):
-//             motor.duty_cycle_sp = pow
-//         sleep(0.01) # Aprox 100Hz
-//}
-
-
 /* Coroutine of control the motors */
 CORO_DEFINE( drive )
 {
@@ -297,11 +271,11 @@ CORO_DEFINE( drive )
 			break;
 
 		case MOVE_FORWARD:
-			_run_forever( -speed_linear, -speed_linear );
+			_run_timed( -speed_linear, -speed_linear, 10);
 			break;
 
 		case MOVE_BACKWARD:
-			_run_forever( speed_linear, speed_linear );
+			_run_timed( speed_linear, speed_linear,20 );
 			break;
 
 		case TURN_LEFT:
@@ -338,7 +312,6 @@ int main( void )
 {
 	printf( "Waiting the EV3 brick online...\n" );
 	if ( ev3_init() < 1 ) return ( 1 );
-_set_speed(10);
 	printf( "*** ( EV3 ) Hello! ***\n" );
 	ev3_sensor_init();
 	ev3_tacho_init();
@@ -346,28 +319,21 @@ _set_speed(10);
 	app_alive = app_init();
 	while ( app_alive ) {
 
-//		command=MOVE_FORWARD;
-
 		CORO_CALL( handle_touch );
 		//CORO_CALL( handle_color );
 		CORO_CALL( handle_brick_control );
-//CORO_CALL(drive);
-		if (mode == MODE_LEADER){
-		CORO_CALL(handle_color);
-//			CORO_CALL( supervisory_drive );
-		CORO_CALL(drive);	
-//		CORO_CALL( drive );
-			//FOLLOW THE LINE
-		}else{
-	_set_speed(50);
-command= TURN_RIGHT;
-CORO_CALL(drive);
-		//FOLLOW THE VEHICLE IN FRONT
+
+		printf( "LEGO_EV3_M_MOTOR is found, run for 5 sec...\n" );
+		command = MOVE_FORWARD;
+		CORO_CALL( drive);
+		sleep(10);
+		command = MOVE_BACKWARD;
+		CORO_CALL( drive );
+
 		}
 
-//CORO_CALL(drive);
 		Sleep( 10 );
-	}
+	
 	ev3_uninit();
 	printf( "*** ( EV3 ) Bye! ***\n" );
 
