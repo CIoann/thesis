@@ -170,8 +170,6 @@ int app_init( void )
 CORO_CONTEXT( handle_touch );
 CORO_CONTEXT( handle_color );
 CORO_CONTEXT( handle_brick_control );
-
-CORO_CONTEXT( supervisory_drive);
 CORO_CONTEXT( drive );
 /* Coroutine of the TOUCH sensor handling */
 CORO_DEFINE( handle_touch )
@@ -201,7 +199,6 @@ CORO_DEFINE ( handle_color )
 	CORO_BEGIN();
 	if (sn_colour == DESC_LIMIT ) CORO_QUIT();
 
-	for ( ; ; ){
 		CORO_WAIT(get_sensor_value(0, sn_colour, &val ) || ( val > 0 ) || ( val <= COLOR_COUNT ));
 		printf( "\r(%s)", color[ val ]);
 		fflush( stdout );
@@ -210,7 +207,7 @@ CORO_DEFINE ( handle_color )
 		}else{
 			command = TURN_LEFT;
 		}		
-	}
+	
 	CORO_END();
 }
 
@@ -243,9 +240,7 @@ CORO_DEFINE( handle_brick_control )
 	}
 	CORO_END();
 }
-/* Drive supervisory follow line pid CONTROL*/
-CORO_DEFINE( supervisory_drive )
- {
+/* Drive supervisory follow line pid CONTROL
 // int power = 50
 // int minRef = 40;
 // int maxRef = 100;
@@ -262,11 +257,7 @@ CORO_DEFINE( supervisory_drive )
 //         lastError = error
 //         integral = float(0.5) * integral + error
 //         course = (kp * error + kd * derivative +ki * integral) * direction
-//         for (motor, pow) in zip((left_motor, right_motor), steering2(course, power)):
-//             motor.duty_cycle_sp = pow
-//         sleep(0.01) # Aprox 100Hz
-}
-
+//         for (motor, pow) in zip((left_mot
 
 /* Coroutine of control the motors */
 CORO_DEFINE( drive )
