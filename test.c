@@ -37,8 +37,8 @@
 #define R_MOTOR_EXT_PORT  EXT_PORT__NONE_
 #define IR_CHANNEL        0
 
-#define SPEED_LINEAR      75  /* Motor speed for linear motion, in percents */
-#define SPEED_CIRCULAR    50  /* ... for circular motion */
+#define SPEED_LINEAR      20  /* Motor speed for linear motion, in percents */
+#define SPEED_CIRCULAR    10  /* ... for circular motion */
 
 int max_speed;  /* Motor maximal speed */
 
@@ -63,6 +63,7 @@ enum {
 	TURN_RIGHT,
 	TURN_ANGLE,
 	STEP_BACKWARD,
+	STEP_FORWARD,
 };
 
 const char *color[] = { "?", "BLACK", "BLUE", "GREEN", "YELLOW", "RED", "WHITE", "BROWN" };
@@ -170,6 +171,7 @@ int app_init( void )
 CORO_CONTEXT( handle_touch );
 CORO_CONTEXT( handle_color );
 CORO_CONTEXT( handle_brick_control );
+//CORO_CONTEXT( handle_supervisory );
 CORO_CONTEXT( drive );
 /* Coroutine of the TOUCH sensor handling */
 CORO_DEFINE( handle_touch )
@@ -197,17 +199,23 @@ CORO_DEFINE ( handle_color )
 	CORO_LOCAL int val;
 
 	CORO_BEGIN();
-	if (sn_colour == DESC_LIMIT ) CORO_QUIT();
-
+//for ( ; ; ){
+//	if (sn_colour == DESC_LIMIT ) CORO_QUIT();
+for( ; ; ){
 		CORO_WAIT(get_sensor_value(0, sn_colour, &val ) || ( val > 0 ) || ( val <= COLOR_COUNT ));
 		printf( "\r(%s)", color[ val ]);
 		fflush( stdout );
 		if (val == 1) {
-			command = MOVE_FORWARD;
+			command = STEP_FORWARD;
+//			break;
 		}else{
-			command = TURN_LEFT;
-		}		
-	
+			command = STEP_BACKWARD;
+//			break;
+		}
+//		CORO_WAIT(get_sensor_value(0,sn_colour, &val)||(val>0)||(val<=COLOR_COUNT));		
+	CORO_YIELD();
+	}
+CORO_YIELD();
 	CORO_END();
 }
 
@@ -240,6 +248,17 @@ CORO_DEFINE( handle_brick_control )
 	}
 	CORO_END();
 }
+
+//CORO_DEFINE( handle_supervisory)
+///{
+
+	//CORO_LOCAL
+//	CORO BEGIN();
+//	for ( ; ; ){
+		
+//	}
+//	CORO_END();
+//}
 /* Drive supervisory follow line pid CONTROL
 // int power = 50
 // int minRef = 40;
@@ -307,7 +326,12 @@ CORO_DEFINE( drive )
 			_run_timed( speed_linear, speed_linear, 1000 );
 			_wait_stopped = 1;
 			break;
+		case STEP_FORWARD:
+			_run_timed(-speed_linear,-speed_linear,1000);
+			_wait_stopped = 1;
+			break;
 		}
+
 		moving = command;
 
 		if ( _wait_stopped ) {
@@ -331,7 +355,7 @@ int main( void )
 	app_alive = app_init();
 	while ( app_alive ) {
 
-		command=MOVE_FORWARD;
+//		command=STEP_BACKWARD;
 		CORO_CALL( handle_touch );
 		CORO_CALL( handle_color );
 		CORO_CALL( handle_brick_control );
@@ -342,12 +366,17 @@ int main( void )
 		}else{
 			//FOLLOW THE VEHICLE IN FRONT
 		}*/
-				
+//_run_timed(20,20,10);
+//_run_timed(20,-20,10);
+printf("now drive");				
 		CORO_CALL( drive );
-
-
-		Sleep( 10 );
+//printf("hi just stepped backward\n");
+//command = STEP_FORWARD;
+//CORO_CALL ( drive ) ;
+//printf("hi just stepped forward\n");
+//		Sleep( 10 );
 	}
+
 	ev3_uninit();
 	printf( "*** ( EV3 ) Bye! ***\n" );
 
