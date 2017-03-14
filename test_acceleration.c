@@ -31,13 +31,13 @@
 //////////////////////////////////////////////////
 #endif
 
-#define L_MOTOR_PORT      OUTPUT_C
+#define L_MOTOR_PORT      OUTPUT_A
 #define L_MOTOR_EXT_PORT  EXT_PORT__NONE_
 #define R_MOTOR_PORT      OUTPUT_B
 #define R_MOTOR_EXT_PORT  EXT_PORT__NONE_
 #define IR_CHANNEL        0
 
-#define SPEED_LINEAR      30  /* Motor speed for linear motion, in percents */
+#define SPEED_LINEAR      5  /* Motor speed for linear motion, in percents */
 #define SPEED_CIRCULAR    20  /* ... for circular motion */
 
 int max_speed;  /* Motor maximal speed */
@@ -53,7 +53,7 @@ enum {
 };
 
 int mode;  /* Driving mode */
-
+int speed=10; /* Driving speed*/
 
 enum {
 	MOVE_NONE,
@@ -197,20 +197,32 @@ CORO_DEFINE( handle_touch )
 CORO_DEFINE ( handle_color )
 {
 	CORO_LOCAL int val;
-
+	CORO_LOCAL int nspeed=10;
 	CORO_BEGIN();
-	/* Waiting the color sensor */
-	for( ; ; ){
+//for ( ; ; ){
+//	if (sn_colour == DESC_LIMIT ) CORO_QUIT();
+for( ; ; ){
 		CORO_WAIT(get_sensor_value(0, sn_colour, &val ) || ( val > 0 ) || ( val <= COLOR_COUNT ));
 		printf( "\r(%s)", color[ val ]);
 		fflush( stdout );
 		if (val == 1) {
-			command = MOVE_FORWARD;
+			if (speed<100){
+			speed  = speed +10;
+			nspeed = max_speed*(speed+SPEED_LINEAR)/100;
+			_run_forever(nspeed,nspeed);
+			//command = MOVE_BACKWARD;
+			}
+//			break;
 		}else{
-			command = MOVE_BACKWARD;
-		}
-	}
+			speed =0;
+
+			nspeed = max_speed*(5+SPEED_LINEAR)/100;
+			_run_forever(nspeed,nspeed);
+//			command = MOVE_BACKWARD;
+}
 	CORO_YIELD();
+	}
+CORO_YIELD();
 	CORO_END();
 }
 
@@ -251,12 +263,13 @@ CORO_DEFINE( drive )
 	CORO_LOCAL int _wait_stopped;
 
 	CORO_BEGIN();
-	speed_linear = max_speed * SPEED_LINEAR / 100;
+	speed_linear = (max_speed *(speed+ SPEED_LINEAR)) / 100;
 	speed_circular = max_speed * SPEED_CIRCULAR / 100;
 
 	for ( ; ; ) {
 		/* Waiting new command */
 		CORO_WAIT( moving != command );
+//§§§§§§§§speed_linear = (max_speed*(speed+SPEED_LINEAR))/100;
 
 		_wait_stopped = 0;
 		switch ( command ) {
@@ -305,6 +318,7 @@ CORO_DEFINE( drive )
 			CORO_WAIT( !_is_running());
 
 			command = moving = MOVE_NONE;
+			speed_linear = max_speed*(speed+SPEED_LINEAR)/100;
 		}
 	}
 	CORO_END();
@@ -334,8 +348,9 @@ int main( void )
 		}*/
 //_run_timed(20,20,10);
 //_run_timed(20,-20,10);
-printf("now drive");				
-		CORO_CALL( drive );
+printf("now drive with speed %d\n", speed);				
+//		CORO_CALL( drive );
+printf("speed %d \n",speed);
 //printf("hi just stepped backward\n");
 //command = STEP_FORWARD;
 //CORO_CALL ( drive ) ;
