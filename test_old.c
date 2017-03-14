@@ -37,8 +37,8 @@
 #define R_MOTOR_EXT_PORT  EXT_PORT__NONE_
 #define IR_CHANNEL        0
 
-#define SPEED_LINEAR      30  /* Motor speed for linear motion, in percents */
-#define SPEED_CIRCULAR    20  /* ... for circular motion */
+#define SPEED_LINEAR      10  /* Motor speed for linear motion, in percents */
+#define SPEED_CIRCULAR    10  /* ... for circular motion */
 
 int max_speed;  /* Motor maximal speed */
 
@@ -53,7 +53,7 @@ enum {
 };
 
 int mode;  /* Driving mode */
-
+int speed=1; /* Driving speed */
 
 enum {
 	MOVE_NONE,
@@ -64,6 +64,8 @@ enum {
 	TURN_ANGLE,
 	STEP_BACKWARD,
 	STEP_FORWARD,
+	MOVE_DECELERATE,
+	MOVE_ACCELERATE,
 };
 
 const char *color[] = { "?", "BLACK", "BLUE", "GREEN", "YELLOW", "RED", "WHITE", "BROWN" };
@@ -84,6 +86,10 @@ static void _set_mode( int value )
 	//choose mode! wifi
 		mode = MODE_LEADER;
 
+}
+static int _set_speed(int value)
+{
+	return ((max_speed*(SPEED_LINEAR+value))/100);
 }
 
 static void _run_forever( int l_speed, int r_speed )
@@ -108,6 +114,12 @@ static void _run_timed( int l_speed, int r_speed, int ms )
 	set_tacho_speed_sp( motor[ R ], r_speed );
 	multi_set_tacho_time_sp( motor, ms );
 	multi_set_tacho_command_inx( motor, TACHO_RUN_TIMED );
+}
+static void _run_decelerate(){
+	printf("Decelerating \n");
+}
+static void _run_accelerate(){
+	printf("Accelerating \n");
 }
 
 static int _is_running( void )
@@ -152,7 +164,6 @@ int app_init( void )
 		return ( 0 );
 	}
 	if (ev3_search_sensor ( LEGO_EV3_COLOR, &sn_colour, 0 )){
-		
 		set_sensor_mode(sn_colour, "COL-COLOR");
 
 	} else {
@@ -161,9 +172,6 @@ int app_init( void )
 		return ( 0 );
 	}
 	command	= moving = MOVE_NONE;
-
-
-
 
 	return ( 1 );
 }
@@ -199,23 +207,20 @@ CORO_DEFINE ( handle_color )
 	CORO_LOCAL int val;
 
 	CORO_BEGIN();
-//for ( ; ; ){
-//	if (sn_colour == DESC_LIMIT ) CORO_QUIT();
-for( ; ; ){
+	for( ; ; ){
 		CORO_WAIT(get_sensor_value(0, sn_colour, &val ) || ( val > 0 ) || ( val <= COLOR_COUNT ));
 		printf( "\r(%s)", color[ val ]);
 		fflush( stdout );
-		if (val == 1) {
-			command = MOVE_FORWARD;
-//			break;
+		if (val == 1){
+			command = MOVE_NONE;
 		}else{
-			command = MOVE_BACKWARD;
-//			break;
+			printf("entered");
+//			if(speed<100){ 
+				command = MOVE_ACCELERATE;
+//			}			
 		}
-//		CORO_WAIT(get_sensor_value(0,sn_colour, &val)||(val>0)||(val<=COLOR_COUNT));		
-	CORO_YIELD();
 	}
-CORO_YIELD();
+	CORO_YIELD();
 	CORO_END();
 }
 
@@ -249,34 +254,6 @@ CORO_DEFINE( handle_brick_control )
 	CORO_END();
 }
 
-//CORO_DEFINE( handle_supervisory)
-///{
-
-	//CORO_LOCAL
-//	CORO BEGIN();
-//	for ( ; ; ){
-		
-//	}
-//	CORO_END();
-//}
-/* Drive supervisory follow line pid CONTROL
-// int power = 50
-// int minRef = 40;
-// int maxRef = 100;
-// int target = 55;
-// float kp = float(0.65);
-// float kd = 1;
-// float ki = float(0.02);
-// int direction = -1;
-// float  lastError, error , integral = 0;
-
-//         refRead = col.value()
-//         error = target - (100 * ( refRead - minRef ) / ( maxRef - minRef ))
-//         derivative = error - lastError
-//         lastError = error
-//         integral = float(0.5) * integral + error
-//         course = (kp * error + kd * derivative +ki * integral) * direction
-//         for (motor, pow) in zip((left_mot
 
 /* Coroutine of control the motors */
 CORO_DEFINE( drive )
@@ -285,9 +262,9 @@ CORO_DEFINE( drive )
 	CORO_LOCAL int _wait_stopped;
 
 	CORO_BEGIN();
-	speed_linear = max_speed * SPEED_LINEAR / 100;
+	speed_linear = (max_speed *( SPEED_LINEAR+speed)) / 100;
 	speed_circular = max_speed * SPEED_CIRCULAR / 100;
-
+printf("speed linear: %d", speed_linear);
 	for ( ; ; ) {
 		/* Waiting new command */
 		CORO_WAIT( moving != command );
@@ -330,6 +307,16 @@ CORO_DEFINE( drive )
 			_run_timed(-speed_linear,-speed_linear,1000);
 			_wait_stopped = 1;
 			break;
+		case MOVE_DECELERATE:
+			_run_decelerate();
+			_wait_stopped = 1;
+			break;
+		case MOVE_ACCELERATE:
+		//	speed_linear =  speed_linear + (max_speed*(SPEED_LINEAR+10)/100);
+			_run_accelerate();
+			_run_forever (speed_linear,speed_linear);
+_wait_stopped = 1;
+			break;
 		}
 
 		moving = command;
@@ -351,6 +338,7 @@ int main( void )
 	printf( "*** ( EV3 ) Hello! ***\n" );
 	ev3_sensor_init();
 	ev3_tacho_init();
+speed = 10;
 
 	app_alive = app_init();
 	while ( app_alive ) {
@@ -359,17 +347,18 @@ int main( void )
 		CORO_CALL( handle_touch );
 		CORO_CALL( handle_color );
 		CORO_CALL( handle_brick_control );
-		/*if (mode == MODE_LEADER){
-			CORO_CALL( supervisory_drive );
+	//	if (mode == MODE_LEADER){
+		//	CORO_CALL( supervisory_drive );
 
 			//FOLLOW THE LINE
-		}else{
+	//	}else{
 			//FOLLOW THE VEHICLE IN FRONT
-		}*/
+	//	}
 //_run_timed(20,20,10);
 //_run_timed(20,-20,10);
-printf("now drive");				
+printf("now drive my speed is: %d \n",speed);				
 		CORO_CALL( drive );
+//speed=20;
 //printf("hi just stepped backward\n");
 //command = STEP_FORWARD;
 //CORO_CALL ( drive ) ;
