@@ -86,29 +86,29 @@ static void _set_mode( int value )
 
 }
 
-// static void _run_forever( int l_speed, int r_speed )
-// {
-// 	set_tacho_speed_sp( motor[ L ], l_speed );
-// 	set_tacho_speed_sp( motor[ R ], r_speed );
-// 	multi_set_tacho_command_inx( motor, TACHO_RUN_FOREVER );
-// }
+static void _run_forever( int l_speed, int r_speed )
+{
+	set_tacho_speed_sp( motor[ L ], l_speed );
+	set_tacho_speed_sp( motor[ R ], r_speed );
+	multi_set_tacho_command_inx( motor, TACHO_RUN_FOREVER );
+}
 
-// static void _run_to_rel_pos( int l_speed, int l_pos, int r_speed, int r_pos )
-// {
-// 	set_tacho_speed_sp( motor[ L ], l_speed );
-// 	set_tacho_speed_sp( motor[ R ], r_speed );
-// 	set_tacho_position_sp( motor[ L ], l_pos );
-// 	set_tacho_position_sp( motor[ R ], r_pos );
-// 	multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
-// }
+static void _run_to_rel_pos( int l_speed, int l_pos, int r_speed, int r_pos )
+{
+	set_tacho_speed_sp( motor[ L ], l_speed );
+	set_tacho_speed_sp( motor[ R ], r_speed );
+	set_tacho_position_sp( motor[ L ], l_pos );
+	set_tacho_position_sp( motor[ R ], r_pos );
+	multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
+}
 
-// static void _run_timed( int l_speed, int r_speed, int ms )
-// {
-// 	set_tacho_speed_sp( motor[ L ], l_speed );
-// 	set_tacho_speed_sp( motor[ R ], r_speed );
-// 	multi_set_tacho_time_sp( motor, ms );
-// 	multi_set_tacho_command_inx( motor, TACHO_RUN_TIMED );
-// }
+static void _run_timed( int l_speed, int r_speed, int ms )
+{
+	set_tacho_speed_sp( motor[ L ], l_speed );
+	set_tacho_speed_sp( motor[ R ], r_speed );
+	multi_set_tacho_time_sp( motor, ms );
+	multi_set_tacho_command_inx( motor, TACHO_RUN_TIMED );
+}
 
 static int _is_running( void )
 {
@@ -198,27 +198,57 @@ void accelerate(){
 	// }
 	// _run_forever (speed, speed);
 }
-/* Set Movement speed */
-void _run_forever(int l_speed, int r_speed){
-	set_tacho_speed_sp( motor[ L ], l_speed );
-	set_tacho_speed_sp( motor[ R ], r_speed );
-	multi_set_tacho_command_inx( motor, TACHO_RUN_FOREVER );
+
+// ====================
+// FOLLOWER FUNCTIONS
+// ====================
+/* receive location from ultra sonic */
+float FusDistance(){
+	return 0.1;
+	//return -1 if no one in range
 }
-/* Turn Right */ 
-void _run_turnRight(int l_speed, int r_speed){
-	_run_forever( -speed_circular, speed_circular );
+
+void FFollow(){
+	// if f_detectLeader 
+
+		// while ! (v1 <f_usDistance < v2) 
+		// then accelerate
+		// otherwise continue with the same speed.
+	//else 
+		// start select algorithm
 }
-/* Turn Left */
-void _run_turnLeft(int l_speed, int r_speed){
-	_run_forever( speed_circular, -speed_circular );
+bool FdetectLeader(){
+	// if (f_usDistance < 0)
+	return true;
 }
-/* Movement specific mili seconds */
-void _run_timed( int l_speed, int r_speed, int ms ){
-	set_tacho_speed_sp( motor[ L ], l_speed );
-	set_tacho_speed_sp( motor[ R ], r_speed );
-	multi_set_tacho_time_sp( motor, ms );
-	multi_set_tacho_command_inx( motor, TACHO_RUN_TIMED );
+void FbecomeLeader(){
+	//receive info of how many cars should pass
+	//move to the front of the platoon
 }
+
+// ====================
+// LEADER FUNCTIONS
+// ====================
+void Lmovement(){
+	//detect obstacles
+	//detect turns
+	//follow black line
+	// accelerate/decelerate
+}
+
+void LsearchObstacles(){
+	//ir sensor
+}
+void Lsearchline(){
+	//find the black line 
+}
+
+void LchangeLeader(){
+	// send a message to the follower behind to take leadership
+	// exit platoon
+}
+
+
 
 CORO_CONTEXT( handle_color );
 
