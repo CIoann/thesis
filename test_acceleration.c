@@ -262,7 +262,7 @@ CORO_DEFINE ( handle_color )
 		printf( "\r(%s)", color[ val ]);
 		fflush( stdout );
 		if (val == 1) {
-			accelerate(speed,nspeed);
+			accelerate(&speed,&nspeed);
 		}else{
 			speed =0;
 
