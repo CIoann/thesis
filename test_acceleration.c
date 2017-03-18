@@ -335,7 +335,6 @@ int main( void )
 	app_alive = app_init();
 	while ( app_alive ) {
 
-//		command=STEP_BACKWARD;
 		CORO_CALL( handle_touch );
 		CORO_CALL( handle_color );
 		CORO_CALL( handle_brick_control );
@@ -346,16 +345,7 @@ int main( void )
 		}else{
 			//FOLLOW THE VEHICLE IN FRONT
 		}*/
-//_run_timed(20,20,10);
-//_run_timed(20,-20,10);
-printf("now drive with speed %d\n", speed);				
-//		CORO_CALL( drive );
-printf("speed %d \n",speed);
-//printf("hi just stepped backward\n");
-//command = STEP_FORWARD;
-//CORO_CALL ( drive ) ;
-//printf("hi just stepped forward\n");
-//		Sleep( 10 );
+
 	}
 
 	ev3_uninit();
