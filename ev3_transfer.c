@@ -32,7 +32,7 @@ const char *color[] = { "?", "BLACK", "BLUE", "GREEN", "YELLOW", "RED", "WHITE",
 // ===========================================
 
 /* Check if infrared is connected */
-int _is_IR_connected( void ){
+int _is_IR_connected(uint8_t ir ){
 	if ( ev3_search_sensor( LEGO_EV3_IR, &ir, 0 )) {
 		_set_mode( MODE_REMOTE );
 	} else {

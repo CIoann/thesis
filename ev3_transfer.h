@@ -104,9 +104,7 @@ void _stop( void );
 // ===========================
 /* Choose leader or follower*/
 // ===========================
-void _set_mode (int value){
-	mode = value;
-}
+void _set_mode (int value);
 
 // ====================
 // FOLLOWER FUNCTIONS
