@@ -39,7 +39,7 @@
 
 #define SPEED_LINEAR      5  /* Motor speed for linear motion, in percents */
 #define SPEED_CIRCULAR    20  /* ... for circular motion */
-
+#define _MAX_SPEED_ 100
 int max_speed;  /* Motor maximal speed */
 
 #define DEGREE_TO_COUNT( d )  (( d ) * 260 / 90 )
@@ -179,24 +179,24 @@ int app_init( void )
 /* velocity functions */
 // ===========================================
 /* MAX SPEED?*/
-int is_speed_max(){
-	/*if (speed>_MAX_SPEED_){
-		return 0;
-	}*/
-	return 1;
+bool _is_speed_max(int speed){
+	if (speed<_MAX_SPEED_){
+		return true;
+	}
+	return false;
 }
 /* decelerate */ 
 void decelerate(){
 
 }
 /* Accelerate */
-void accelerate(){
-	// if (_is_speed_max()){
-	// 	speed = speed + 10;
-	// 	nspeed = max_speed*(speed+SPEED_LINEAR)/100;
-	// 		_run_forever(nspeed,nspeed);
-	// }
-	// _run_forever (speed, speed);
+void accelerate(int current_speed, int* nspeed){
+	if (is_speed_max)
+			speed  = speed +10;
+			*nspeed = max_speed*(current_speed+SPEED_LINEAR)/100;
+			_run_forever(*nspeed,*nspeed);
+			//command = MOVE_BACKWARD;
+			}
 }
 
 // ====================
@@ -262,13 +262,7 @@ CORO_DEFINE ( handle_color )
 		printf( "\r(%s)", color[ val ]);
 		fflush( stdout );
 		if (val == 1) {
-			if (speed<100){
-			speed  = speed +10;
-			nspeed = max_speed*(speed+SPEED_LINEAR)/100;
-			_run_forever(nspeed,nspeed);
-			//command = MOVE_BACKWARD;
-			}
-//			break;
+			accelerate(speed,nspeed);
 		}else{
 			speed =0;
 
