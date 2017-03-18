@@ -10,7 +10,12 @@
  *  \brief  EV3 creating transfer wireless info
  *  \author  Constantina Ioannou (ioannou.connie@gmail.com)
  */
-
+#include <stdio.h>
+#include "coroutine.h"
+#include "ev3.h"
+#include "ev3_port.h"
+#include "ev3_sensor.h"
+#include "ev3_tacho.h"
 #include "ev3_transfer.h"  
 #define COLOR_COUNT  (( int )( sizeof( color ) / sizeof( color[ 0 ])))
 #define L_MOTOR_PORT      OUTPUT_A
@@ -209,8 +214,8 @@ void LchangeLeader(){
 
 /* Check i APP INIT is established */ 
 int app_init( void ){
-	if (_is_Tacho_connected && _is_sn_color_connected && _is_IR_connected && _is_ultrasonic_connected){
-		command	= moving = MOVE_NONE;
+	if (_is_Tacho_connected() && _is_sn_color_connected() && _is_IR_connected() && _is_ultrasonic_connected()){
+		//command	= moving = MOVE_NONE;
 		return ( 1 );
 	}else{
 		return ( 0 );

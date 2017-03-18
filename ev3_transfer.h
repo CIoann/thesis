@@ -62,19 +62,19 @@ enum {
 
 
 /* Check i APP INIT is established */ 
-int app_init( void );
+int app_init(uint8_t ir );
 
 // ===========================================
 /* sensor connection established functions */
 // ===========================================
 
-int _is_IR_connected( void );
+int _is_IR_connected(uint8_t ir);
 /* Check if ultrasonic is connected */
-int _is_ultrasonic_connected(void);
+int _is_ultrasonic_connected(uint8_t us);
 /* Check if sensor color is connected */
-int _is_sn_color_connected(void);	
+int _is_sn_color_connected(uint8_t sn_colour);	
 /* Check if motors are connected */
-int _is_Tacho_connected(void);
+int _is_Tacho_connected(uint8_t motor[], int max_speed);
 
 
 
@@ -88,13 +88,13 @@ void decelerate();
 /* Accelerate */
 void accelerate();
 /* Set Movement speed */
-void _run_forever(int l_speed, int r_speed);
+void _run_forever(int l_speed, int r_speed, uint8_t motor[]);
 /* Turn Right */ 
-void _run_turnRight(int l_speed, int r_speed);
+void _run_turnRight(int l_speed, int r_speed,uint8_t motor[]);
 /* Turn Left */
-void _run_turnLeft(int l_speed, int r_speed);
+void _run_turnLeft(int l_speed, int r_speed, uint8_t motor[]);
 /* Movement specific mili seconds */
-void _run_timed( int l_speed, int r_speed, int ms );
+void _run_timed( int l_speed, int r_speed, int ms, uint8_t motor[] );
 /* is it running? */
 int _is_running( void );
 /* Stop tachos */
