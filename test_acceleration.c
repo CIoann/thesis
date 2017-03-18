@@ -86,29 +86,29 @@ static void _set_mode( int value )
 
 }
 
-static void _run_forever( int l_speed, int r_speed )
-{
-	set_tacho_speed_sp( motor[ L ], l_speed );
-	set_tacho_speed_sp( motor[ R ], r_speed );
-	multi_set_tacho_command_inx( motor, TACHO_RUN_FOREVER );
-}
+// static void _run_forever( int l_speed, int r_speed )
+// {
+// 	set_tacho_speed_sp( motor[ L ], l_speed );
+// 	set_tacho_speed_sp( motor[ R ], r_speed );
+// 	multi_set_tacho_command_inx( motor, TACHO_RUN_FOREVER );
+// }
 
-static void _run_to_rel_pos( int l_speed, int l_pos, int r_speed, int r_pos )
-{
-	set_tacho_speed_sp( motor[ L ], l_speed );
-	set_tacho_speed_sp( motor[ R ], r_speed );
-	set_tacho_position_sp( motor[ L ], l_pos );
-	set_tacho_position_sp( motor[ R ], r_pos );
-	multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
-}
+// static void _run_to_rel_pos( int l_speed, int l_pos, int r_speed, int r_pos )
+// {
+// 	set_tacho_speed_sp( motor[ L ], l_speed );
+// 	set_tacho_speed_sp( motor[ R ], r_speed );
+// 	set_tacho_position_sp( motor[ L ], l_pos );
+// 	set_tacho_position_sp( motor[ R ], r_pos );
+// 	multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
+// }
 
-static void _run_timed( int l_speed, int r_speed, int ms )
-{
-	set_tacho_speed_sp( motor[ L ], l_speed );
-	set_tacho_speed_sp( motor[ R ], r_speed );
-	multi_set_tacho_time_sp( motor, ms );
-	multi_set_tacho_command_inx( motor, TACHO_RUN_TIMED );
-}
+// static void _run_timed( int l_speed, int r_speed, int ms )
+// {
+// 	set_tacho_speed_sp( motor[ L ], l_speed );
+// 	set_tacho_speed_sp( motor[ R ], r_speed );
+// 	multi_set_tacho_time_sp( motor, ms );
+// 	multi_set_tacho_command_inx( motor, TACHO_RUN_TIMED );
+// }
 
 static int _is_running( void )
 {
@@ -126,6 +126,12 @@ static void _stop( void )
 {
 	multi_set_tacho_command_inx( motor, TACHO_STOP );
 }
+
+
+
+// ===========================================
+/* sensor connection established functions */
+// ===========================================
 
 int app_init( void )
 {
@@ -151,6 +157,7 @@ int app_init( void )
 		/* Inoperative without right motor */
 		return ( 0 );
 	}
+	// check color sensor
 	if (ev3_search_sensor ( LEGO_EV3_COLOR, &sn_colour, 0 )){
 		
 		set_sensor_mode(sn_colour, "COL-COLOR");
@@ -162,46 +169,65 @@ int app_init( void )
 	}
 	command	= moving = MOVE_NONE;
 
-
-
-
 	return ( 1 );
 }
 
-CORO_CONTEXT( handle_touch );
-CORO_CONTEXT( handle_color );
-CORO_CONTEXT( handle_brick_control );
-//CORO_CONTEXT( handle_supervisory );
-CORO_CONTEXT( drive );
-/* Coroutine of the TOUCH sensor handling */
-CORO_DEFINE( handle_touch )
-{
-	CORO_LOCAL int val;
 
-	CORO_BEGIN();
-	if ( touch == DESC_LIMIT ) CORO_QUIT();
 
-	for ( ; ; ) {
-		/* Waiting the button is pressed */
-		CORO_WAIT( get_sensor_value( 0, touch, &val ) && ( val ));
-		/* Stop the vehicle */
-		command = MOVE_BACKWARD;
-		/* Switch mode */
-		_set_mode(( mode == MODE_LEADER ) ? MODE_AUTO : MODE_LEADER );
-		/* Waiting the button is released */
-		CORO_WAIT( get_sensor_value( 0, touch, &val ) && ( !val ));
-	}
-	CORO_END();
+
+// ===========================================
+/* velocity functions */
+// ===========================================
+/* MAX SPEED?*/
+int is_speed_max(){
+	/*if (speed>_MAX_SPEED_){
+		return 0;
+	}*/
+	return 1;
 }
+/* decelerate */ 
+void decelerate(){
+
+}
+/* Accelerate */
+void accelerate(){
+	// if (_is_speed_max()){
+	// 	speed = speed + 10;
+	// 	nspeed = max_speed*(speed+SPEED_LINEAR)/100;
+	// 		_run_forever(nspeed,nspeed);
+	// }
+	// _run_forever (speed, speed);
+}
+/* Set Movement speed */
+void _run_forever(int l_speed, int r_speed){
+	set_tacho_speed_sp( motor[ L ], l_speed );
+	set_tacho_speed_sp( motor[ R ], r_speed );
+	multi_set_tacho_command_inx( motor, TACHO_RUN_FOREVER );
+}
+/* Turn Right */ 
+void _run_turnRight(int l_speed, int r_speed){
+	_run_forever( -speed_circular, speed_circular );
+}
+/* Turn Left */
+void _run_turnLeft(int l_speed, int r_speed){
+	_run_forever( speed_circular, -speed_circular );
+}
+/* Movement specific mili seconds */
+void _run_timed( int l_speed, int r_speed, int ms ){
+	set_tacho_speed_sp( motor[ L ], l_speed );
+	set_tacho_speed_sp( motor[ R ], r_speed );
+	multi_set_tacho_time_sp( motor, ms );
+	multi_set_tacho_command_inx( motor, TACHO_RUN_TIMED );
+}
+
+CORO_CONTEXT( handle_color );
 
 CORO_DEFINE ( handle_color )
 {
 	CORO_LOCAL int val;
 	CORO_LOCAL int nspeed=10;
 	CORO_BEGIN();
-//for ( ; ; ){
-//	if (sn_colour == DESC_LIMIT ) CORO_QUIT();
-for( ; ; ){
+	for( ; ; ){
 		CORO_WAIT(get_sensor_value(0, sn_colour, &val ) || ( val > 0 ) || ( val <= COLOR_COUNT ));
 		printf( "\r(%s)", color[ val ]);
 		fflush( stdout );
@@ -219,110 +245,15 @@ for( ; ; ){
 			nspeed = max_speed*(5+SPEED_LINEAR)/100;
 			_run_forever(nspeed,nspeed);
 //			command = MOVE_BACKWARD;
-}
+		}
 	CORO_YIELD();
 	}
-CORO_YIELD();
 	CORO_END();
 }
 
 
 
-/* Coroutine of the EV3 brick keys handling 
-	define leader and follower manually*/
-CORO_DEFINE( handle_brick_control )
-{
-	CORO_LOCAL uint8_t keys, pressed = EV3_KEY__NONE_;
 
-	CORO_BEGIN();
-	for ( ; ; ) {
-		/* Waiting any key is pressed or released */
-		CORO_WAIT( ev3_read_keys( &keys ) && ( keys != pressed ));
-		pressed = keys;
-
-		if ( pressed & EV3_KEY_BACK ) {
-			command = MOVE_NONE;
-			_set_mode(( mode == MODE_FOLLOWER ) ? MODE_AUTO : MODE_FOLLOWER );
-
-
-		} else if ( pressed & EV3_KEY_UP ) {
-			/* Stop the vehicle */
-			command = MOVE_NONE;
-			/* Switch mode */
-			_set_mode(( mode == MODE_LEADER ) ? MODE_AUTO : MODE_LEADER );
-		}
-		CORO_YIELD();
-	}
-	CORO_END();
-}
-
-/* Coroutine of control the motors */
-CORO_DEFINE( drive )
-{
-	CORO_LOCAL int speed_linear, speed_circular;
-	CORO_LOCAL int _wait_stopped;
-
-	CORO_BEGIN();
-	speed_linear = (max_speed *(speed+ SPEED_LINEAR)) / 100;
-	speed_circular = max_speed * SPEED_CIRCULAR / 100;
-
-	for ( ; ; ) {
-		/* Waiting new command */
-		CORO_WAIT( moving != command );
-//§§§§§§§§speed_linear = (max_speed*(speed+SPEED_LINEAR))/100;
-
-		_wait_stopped = 0;
-		switch ( command ) {
-
-		case MOVE_NONE:
-			_stop();
-			_wait_stopped = 1;
-			break;
-
-		case MOVE_FORWARD:
-			_run_forever( -speed_linear, -speed_linear );
-			break;
-
-		case MOVE_BACKWARD:
-			_run_forever( speed_linear, speed_linear );
-			break;
-
-		case TURN_LEFT:
-			_run_forever( speed_circular, -speed_circular );
-			break;
-
-		case TURN_RIGHT:
-			_run_forever( -speed_circular, speed_circular );
-			break;
-
-		case TURN_ANGLE:
-			_run_to_rel_pos( speed_circular, DEGREE_TO_COUNT( -angle )
-			, speed_circular, DEGREE_TO_COUNT( angle ));
-			_wait_stopped = 1;
-			break;
-
-		case STEP_BACKWARD:
-			_run_timed( speed_linear, speed_linear, 1000 );
-			_wait_stopped = 1;
-			break;
-		case STEP_FORWARD:
-			_run_timed(-speed_linear,-speed_linear,1000);
-			_wait_stopped = 1;
-			break;
-		}
-
-		moving = command;
-
-		if ( _wait_stopped ) {
-			/* Waiting the command is completed */
-			CORO_WAIT( !_is_running());
-
-			command = moving = MOVE_NONE;
-			speed_linear = max_speed*(speed+SPEED_LINEAR)/100;
-		}
-	}
-	CORO_END();
-}
 int main( void )
 {
 	printf( "Waiting the EV3 brick online...\n" );
@@ -335,16 +266,7 @@ int main( void )
 	app_alive = app_init();
 	while ( app_alive ) {
 
-		CORO_CALL( handle_touch );
 		CORO_CALL( handle_color );
-		CORO_CALL( handle_brick_control );
-		/*if (mode == MODE_LEADER){
-			CORO_CALL( supervisory_drive );
-
-			//FOLLOW THE LINE
-		}else{
-			//FOLLOW THE VEHICLE IN FRONT
-		}*/
 
 	}
 
