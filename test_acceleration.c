@@ -46,6 +46,19 @@ int max_speed;  /* Motor maximal speed */
 
 int app_alive;
 
+
+typedef struct{
+	int velocity;
+	float locX;
+	float locY;
+	float orientation;
+	int acceleration;
+	int id;
+	int mode;
+} VEHICLE_PROFILE;
+
+
+
 enum {
 	MODE_LEADER,  /* Supervisory - follow the line */
 	MODE_FOLLOWER, /* Follower - Follow the front vehicle */
@@ -276,21 +289,33 @@ CORO_DEFINE ( handle_color )
 }
 
 
-
+void init_vp(VEHICLE_PROFILE *vp){
+	*vp.id =0;
+	*vp.orientation = 0.0;
+	*vp.mode = MODE_LEADER;
+	*vp.location.x = 0.0;
+	*vp.location.y = 0.0;
+	*vp.velocity = 0;
+}
 
 int main( void )
 {
+	VEHICLE_PROFILE vp;
+
+	
+	
 	printf( "Waiting the EV3 brick online...\n" );
 	if ( ev3_init() < 1 ) return ( 1 );
 
 	printf( "*** ( EV3 ) Hello! ***\n" );
+	printf( "*** I am: %d and I am in mode: %d", vp.id, vp.mode);
 	ev3_sensor_init();
 	ev3_tacho_init();
 
 	app_alive = app_init();
 	while ( app_alive ) {
 
-		CORO_CALL( handle_color );
+	//	CORO_CALL( handle_color );
 
 	}
 
