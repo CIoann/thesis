@@ -179,8 +179,8 @@ int app_init( void )
 /* velocity functions */
 // ===========================================
 /* MAX SPEED?*/
-bool _is_speed_max(int speed){
-	if (speed<_MAX_SPEED_){
+bool _is_speed_max(int cspeed){
+	if (cspeed<_MAX_SPEED_){
 		return true;
 	}
 	return false;
@@ -191,7 +191,7 @@ void decelerate(){
 }
 /* Accelerate */
 void accelerate(int current_speed, int* nspeed){
-	if (is_speed_max)
+	if (_is_speed_max(current_speed)){
 			speed  = speed +10;
 			*nspeed = max_speed*(current_speed+SPEED_LINEAR)/100;
 			_run_forever(*nspeed,*nspeed);
@@ -262,7 +262,7 @@ CORO_DEFINE ( handle_color )
 		printf( "\r(%s)", color[ val ]);
 		fflush( stdout );
 		if (val == 1) {
-			accelerate(&speed,&nspeed);
+			accelerate(speed,&nspeed);
 		}else{
 			speed =0;
 
