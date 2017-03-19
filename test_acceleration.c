@@ -57,7 +57,7 @@ typedef struct{
 	int mode;
 } VEHICLE_PROFILE;
 
-
+VEHICLE_PROFILE vp;
 
 enum {
 	MODE_LEADER,  /* Supervisory - follow the line */
@@ -65,8 +65,6 @@ enum {
 	MODE_AUTO,    /* Self-driving */
 };
 
-int mode;  /* Driving mode */
-int speed=10; /* Driving speed*/
 
 enum {
 	MOVE_NONE,
@@ -95,7 +93,7 @@ uint8_t motor[ 3 ] = { DESC_LIMIT, DESC_LIMIT, DESC_LIMIT };  /* Sequence number
 static void _set_mode( int value )
 {
 	//choose mode! wifi
-		mode = MODE_LEADER;
+		vp.mode = MODE_LEADER;
 
 }
 
@@ -200,16 +198,23 @@ bool _is_speed_max(int cspeed){
 }
 /* decelerate */ 
 void decelerate(){
+vp.velocity = 10;
 
 }
 /* Accelerate */
 void accelerate(int current_speed, int* nspeed){
 	if (_is_speed_max(current_speed)){
-			speed  = speed +10;
+			
+			vp.velocity = vp.velocity + 10;
 			*nspeed = max_speed*(current_speed+SPEED_LINEAR)/100;
 			_run_forever(*nspeed,*nspeed);
 			//command = MOVE_BACKWARD;
 			}
+}
+/*set desired speed */
+void  set_speed(int dspeed){
+	vp.velocity = dspeed;
+	_run_forever(dspeed,dspeed);
 }
 
 // ====================
@@ -275,13 +280,11 @@ CORO_DEFINE ( handle_color )
 		printf( "\r(%s)", color[ val ]);
 		fflush( stdout );
 		if (val == 1) {
-			accelerate(speed,&nspeed);
+			accelerate(vp.velocity,&nspeed);
 		}else{
-			speed =0;
-
+			vp.velocity =5;
 			nspeed = max_speed*(5+SPEED_LINEAR)/100;
 			_run_forever(nspeed,nspeed);
-//			command = MOVE_BACKWARD;
 		}
 	CORO_YIELD();
 	}
@@ -289,33 +292,30 @@ CORO_DEFINE ( handle_color )
 }
 
 
-void init_vp(VEHICLE_PROFILE *vp){
-	*vp.id =0;
-	*vp.orientation = 0.0;
-	*vp.mode = MODE_LEADER;
-	*vp.location.x = 0.0;
-	*vp.location.y = 0.0;
-	*vp.velocity = 0;
+void init_vp(){
+	vp.id =5;
+	vp.orientation = 0.0;
+	vp.mode = MODE_LEADER;
+	vp.locX = 0.0;
+	vp.locY = 0.0;
+	vp.velocity = 10;
 }
-
+//VEHICLE_PROFILE vp;
 int main( void )
 {
-	VEHICLE_PROFILE vp;
-
-	
-	
+init_vp();
 	printf( "Waiting the EV3 brick online...\n" );
 	if ( ev3_init() < 1 ) return ( 1 );
 
 	printf( "*** ( EV3 ) Hello! ***\n" );
-	printf( "*** I am: %d and I am in mode: %d", vp.id, vp.mode);
+	printf( "*** I am: %d and I am in mode:", vp.id);
 	ev3_sensor_init();
 	ev3_tacho_init();
 
 	app_alive = app_init();
 	while ( app_alive ) {
-
-	//	CORO_CALL( handle_color );
+//		printf("hello %d",i);
+		CORO_CALL( handle_color );
 
 	}
 
