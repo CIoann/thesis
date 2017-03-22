@@ -216,6 +216,10 @@ void  set_speed(int dspeed){
 	vp.velocity = dspeed;
 	_run_forever(dspeed,dspeed);
 }
+void set_speed_timed(int speed, int ms){
+	vp.velocity = speed;
+	_run_timed( max_speed*(vp.velocity+SPEED_LINEAR)/100,max_speed*(vp.velocity+SPEED_LINEAR)/100,ms);
+}
 
 // ====================
 // FOLLOWER FUNCTIONS
@@ -248,6 +252,11 @@ void FbecomeLeader(){
 // LEADER FUNCTIONS
 // ====================
 void Lmovement(){
+//leader test function
+	set_speed_timed(10,10);
+	set_speed_timed(20,10);
+	set_speed_timed(70,10);
+	set_speed_timed(10,10);
 	//detect obstacles
 	//detect turns
 	//follow black line
@@ -269,7 +278,22 @@ void LchangeLeader(){
 
 
 CORO_CONTEXT( handle_color );
+CORO_CONTEXT( leadership );
 
+
+CORO_DEFINE ( leadership ){
+
+	
+	CORO_BEGIN();
+	for( ; ; ){
+		//CORO_WAIT(//CHECKING MESSAGES)
+		//If leader
+		Lmovement();
+		}
+	CORO_YIELD();
+	}
+	CORO_END();
+}
 CORO_DEFINE ( handle_color )
 {
 	CORO_LOCAL int val;
@@ -315,6 +339,7 @@ init_vp();
 	app_alive = app_init();
 	while ( app_alive ) {
 //		printf("hello %d",i);
+		CORO_CALL( leadership );
 		CORO_CALL( handle_color );
 
 	}
